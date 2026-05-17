@@ -104,8 +104,9 @@ export async function registerUser(formData: FormData) {
       data: { referralCreditMonths: { increment: 2 } }
     });
   }
-  await createEmailVerification(user);
-  await scheduleNurtureSequence(user);
+  // Fire-and-forget — email failures must never block the sign-up flow
+  createEmailVerification(user).catch((err) => console.warn("[signup] email verification skipped:", err));
+  scheduleNurtureSequence(user).catch((err) => console.warn("[signup] nurture schedule failed:", err));
   await setSessionCookie(user.id);
   redirect("/app/onboarding?registered=1");
 }

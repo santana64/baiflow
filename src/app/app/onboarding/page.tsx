@@ -7,15 +7,10 @@ import { completeOnboarding, getOnboardingState } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 
-export default async function OnboardingPage({
-  searchParams
-}: {
-  searchParams: Promise<{ registered?: string }>;
-}) {
+export default async function OnboardingPage() {
   const user = await getCurrentUser();
   const state = await getOnboardingState(user.id);
   const billing = await getBillingOverview(user);
-  const query = await searchParams;
 
   if (state.completed) {
     return (
