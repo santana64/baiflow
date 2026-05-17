@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { CheckCircle2, FileText, Home, MailCheck, Shield, UserRound } from "lucide-react";
+import { CheckCircle2, FileText, Home, Shield, UserRound } from "lucide-react";
 import { Card, LegalDisclaimerBox, PageHeader } from "@/components/ui";
-import { resendVerificationEmail } from "@/server/account-actions";
 import { getCurrentUser } from "@/server/auth";
 import { getBillingOverview } from "@/server/entitlements";
 import { completeOnboarding, getOnboardingState } from "@/server/onboarding";
@@ -59,40 +58,6 @@ export default async function OnboardingPage({
             </Link>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (!state.emailVerified) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Activez votre essai BailFlow"
-          subtitle="Votre essai Bailleur de 14 jours est prêt. Confirmez votre email pour créer votre premier dossier."
-        />
-        {query.registered && (
-          <div className="rounded-xl border border-sage/20 bg-sage/8 p-4 text-sm text-sage">
-            Compte créé. En local, le lien de confirmation est affiché dans la console du serveur sous `[BailFlow email dev]`.
-          </div>
-        )}
-        <Card>
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/12">
-              <MailCheck className="h-5 w-5 text-warning" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-navy">Email à confirmer</h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink/60">
-                Cette étape évite les comptes fantômes et débloque la création de biens, dossiers et documents.
-              </p>
-              <form action={resendVerificationEmail} className="mt-4">
-                <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-80">
-                  Renvoyer l'email de confirmation
-                </button>
-              </form>
-            </div>
-          </div>
-        </Card>
       </div>
     );
   }

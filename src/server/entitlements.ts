@@ -31,10 +31,8 @@ export async function getRegisteredLetterUsage(userId: string, date = new Date()
   });
 }
 
-export function assertAccountReady(user: User) {
-  if (!user.emailVerifiedAt) {
-    throw new DomainError("Adresse email non vérifiée. Confirmez votre email avant de créer ou générer de nouveaux éléments.");
-  }
+export function assertAccountReady(_user: User) {
+  // Email verification disabled — users can use the app immediately after sign-up
 }
 
 export function assertActiveSubscription(user: User) {

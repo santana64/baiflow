@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { AlertTriangle, MailCheck, Zap } from "lucide-react";
+import { AlertTriangle, Zap } from "lucide-react";
 import { getCurrentUser } from "@/server/auth";
 import { getBillingOverview } from "@/server/entitlements";
 
@@ -15,24 +15,6 @@ const problemStatuses: Record<string, string> = {
 export async function SubscriptionNotice() {
   const user = await getCurrentUser();
   const billing = await getBillingOverview(user);
-
-  if (!user.emailVerifiedAt) {
-    return (
-      <div className="mb-6 rounded-xl border border-warning/30 bg-warning/8 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <p className="text-sm text-ink">
-              Email non vérifié — confirmez votre adresse pour activer la création de biens, dossiers et documents.
-            </p>
-          </div>
-          <Link href="/app/account" className="shrink-0 rounded-full bg-ink px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-80">
-            Vérifier mon email
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   if (billing.trialActive) {
     return (
