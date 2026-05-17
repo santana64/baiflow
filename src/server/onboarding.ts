@@ -1,3 +1,5 @@
+"use server";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { calculateCaseSeverity, computeLineUnpaidAmount, generateDefaultTimeline, getNextRecommendedAction } from "@/domain/rent-cases";
