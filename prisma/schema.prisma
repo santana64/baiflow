@@ -1,0 +1,649 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                          String             @id @default(cuid())
+  email                       String             @unique
+  name                        String
+  passwordHash                String
+  referralCode                String?            @unique
+  referredById                String?
+  referralCreditMonths        Int                @default(0)
+  emailVerifiedAt             DateTime?
+  plan                        BillingPlan        @default(FREE)
+  subscriptionStatus          SubscriptionStatus @default(NONE)
+  stripeCustomerId            String?            @unique
+  stripeSubscriptionId        String?            @unique
+  stripePriceId               String?
+  subscriptionInterval        BillingInterval    @default(MONTHLY)
+  subscriptionCurrentPeriodEnd DateTime?
+  cancelAtPeriodEnd           Boolean            @default(false)
+  trialEndsAt                 DateTime?
+  onboardingCompletedAt       DateTime?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  profile   LandlordProfile?
+  referredBy User? @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals User[] @relation("UserReferrals")
+  properties Property[]
+  tenants   Tenant[]
+  rentCases RentCase[]
+  organizations OrganizationMember[]
+  sentWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  acceptedWorkspaceInvitations WorkspaceInvitation[] @relation("WorkspaceInvitationAcceptedUser")
+  apiKeys   ApiKey[]
+  addOnOrders AddOnOrder[]
+  tenantPayments TenantPayment[]
+  whiteLabelSettings WhiteLabelSetting?
+  gliLeads GliLead[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  nurtureEmails           NurtureEmail[]
+
+  @@index([referredById])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LandlordProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  fullName         String
+  email            String
+  phone            String
+  address          String
+  defaultSignature String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  type      OrganizationType @default(SCI)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  invitations WorkspaceInvitation[]
+  sciProfile SciProfile?
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(OWNER)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model WorkspaceInvitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  invitedByUserId String
+  email          String
+  tokenHash      String           @unique
+  role           OrganizationRole @default(MEMBER)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  acceptedUserId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("WorkspaceInvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  acceptedUser User?        @relation("WorkspaceInvitationAcceptedUser", fields: [acceptedUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([invitedByUserId])
+}
+
+model SciProfile {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  legalName      String
+  siren          String?
+  shareCapital   String?
+  taxRegime      String?
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shareholders SciShareholder[]
+}
+
+model SciShareholder {
+  id           String @id @default(cuid())
+  sciProfileId String
+  name         String
+  email        String?
+  sharesBps    Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sciProfile SciProfile @relation(fields: [sciProfileId], references: [id], onDelete: Cascade)
+}
+
+model Property {
+  id                String   @id @default(cuid())
+  userId            String
+  name              String
+  address           String
+  city              String
+  postalCode        String
+  rentAmountCents   Int
+  chargesAmountCents Int
+  paymentDayOfMonth Int
+  leaseStartDate    DateTime
+  hasGuarantor      Boolean  @default(false)
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenants   Tenant[]
+  rentCases RentCase[]
+}
+
+model Tenant {
+  id             String   @id @default(cuid())
+  userId         String
+  propertyId     String?
+  firstName      String
+  lastName       String
+  email          String
+  phone          String
+  address        String
+  guarantorName  String?
+  guarantorEmail String?
+  guarantorPhone String?
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property  Property?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  rentCases RentCase[]
+}
+
+model RentCase {
+  id                           String     @id @default(cuid())
+  userId                       String
+  propertyId                   String
+  tenantId                     String
+  status                       CaseStatus @default(AMICABLE)
+  severity                     Severity   @default(MEDIUM)
+  firstMissedPaymentDate        DateTime
+  totalUnpaidCents              Int        @default(0)
+  nextActionLabel               String
+  nextActionDate                DateTime?
+  legalDisclaimerAcknowledged   Boolean    @default(false)
+  createdAt                     DateTime   @default(now())
+  updatedAt                     DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property   @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  lines      UnpaidRentLine[]
+  events     CaseEvent[]
+  documents  GeneratedDocument[]
+  payments   Payment[]
+  tenantPortalAccess TenantPortalAccess[]
+  addOnOrders AddOnOrder[]
+  tenantPayments TenantPayment[]
+  professionalReferrals ProfessionalReferral[]
+}
+
+model UnpaidRentLine {
+  id              String         @id @default(cuid())
+  rentCaseId      String
+  periodLabel     String
+  dueDate         DateTime
+  rentDueCents    Int
+  chargesDueCents Int
+  paidAmountCents Int
+  unpaidAmountCents Int
+  status          RentLineStatus
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  rentCase RentCase @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+}
+
+model CaseEvent {
+  id          String        @id @default(cuid())
+  rentCaseId  String
+  type        CaseEventType
+  title       String
+  description String?
+  eventDate   DateTime
+  createdAt   DateTime      @default(now())
+
+  rentCase RentCase @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedDocument {
+  id          String       @id @default(cuid())
+  rentCaseId  String
+  type        DocumentType
+  title       String
+  contentHtml String
+  contentText String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  rentCase  RentCase   @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+  emailLogs EmailLog[]
+  addOnOrders AddOnOrder[]
+  signatures ESignatureRequest[]
+  registeredLetters RegisteredLetter[]
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  rentCaseId  String
+  amountCents Int
+  paymentDate DateTime
+  note        String?
+  createdAt   DateTime @default(now())
+
+  rentCase RentCase @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+}
+
+model TenantPayment {
+  id                    String              @id @default(cuid())
+  userId                String
+  rentCaseId            String
+  tenantPortalAccessId  String?
+  amountCents           Int
+  status                TenantPaymentStatus @default(PENDING)
+  stripeSessionId       String?             @unique
+  stripePaymentIntentId String?
+  payerEmail            String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  paidAt                DateTime?
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rentCase           RentCase            @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+  tenantPortalAccess TenantPortalAccess? @relation(fields: [tenantPortalAccessId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([rentCaseId])
+  @@index([status])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  documentId String
+  to         String
+  subject    String
+  resendId   String?
+  sentAt     DateTime @default(now())
+
+  document GeneratedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model NurtureEmail {
+  id        String             @id @default(cuid())
+  userId    String
+  step      Int
+  subject   String
+  bodyHtml  String
+  bodyText  String
+  sendAfter DateTime
+  sentAt    DateTime?
+  status    NurtureEmailStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, step])
+  @@index([status, sendAfter])
+  @@index([userId])
+}
+
+model AddOnOrder {
+  id              String          @id @default(cuid())
+  userId          String
+  rentCaseId      String?
+  documentId      String?
+  type            AddOnType
+  status          AddOnOrderStatus @default(PENDING_PAYMENT)
+  amountCents     Int
+  providerCostCents Int?
+  stripeSessionId String?
+  stripePaymentIntentId String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rentCase RentCase? @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+  document GeneratedDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([rentCaseId])
+  @@index([status])
+}
+
+model RegisteredLetter {
+  id          String @id @default(cuid())
+  documentId  String
+  provider    String
+  providerId  String?
+  status      ExternalRequestStatus @default(PENDING)
+  recipientEmail String
+  recipientName  String
+  receiptUrl     String?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document GeneratedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model ESignatureRequest {
+  id          String @id @default(cuid())
+  documentId  String
+  provider    String
+  providerId  String?
+  status      ExternalRequestStatus @default(PENDING)
+  signerEmail String
+  signerName  String
+  signatureUrl String?
+  signedDocumentUrl String?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document GeneratedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model TenantPortalAccess {
+  id          String   @id @default(cuid())
+  rentCaseId  String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  lastViewedAt DateTime?
+
+  rentCase RentCase @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+  tenantPayments TenantPayment[]
+
+  @@index([rentCaseId])
+}
+
+model PartnerProfessional {
+  id          String @id @default(cuid())
+  type        PartnerProfessionalType
+  name        String
+  department  String
+  city        String
+  email       String
+  phone       String?
+  website     String?
+  description String
+  verified    Boolean @default(false)
+  premiumPlacement Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  referrals ProfessionalReferral[]
+
+  @@index([department, type])
+}
+
+model ProfessionalReferral {
+  id          String @id @default(cuid())
+  rentCaseId  String
+  partnerId   String
+  status      ReferralStatus @default(REQUESTED)
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rentCase RentCase @relation(fields: [rentCaseId], references: [id], onDelete: Cascade)
+  partner  PartnerProfessional @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+}
+
+model ApiKey {
+  id          String @id @default(cuid())
+  userId      String
+  name        String
+  keyHash     String @unique
+  prefix      String
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WhiteLabelSetting {
+  id          String @id @default(cuid())
+  userId      String @unique
+  brandName   String
+  logoUrl     String?
+  primaryColor String @default("#172b4d")
+  accentColor  String @default("#5d7d6a")
+  customDomain String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GliLead {
+  id          String @id @default(cuid())
+  userId      String
+  propertyId  String?
+  provider    String?
+  status      GliLeadStatus @default(REQUESTED)
+  estimatedAnnualPremiumCents Int?
+  commissionCents Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum CaseStatus {
+  DRAFT
+  AMICABLE
+  FORMAL_NOTICE
+  REPAYMENT_PLAN
+  PROFESSIONAL_ESCALATION
+  RESOLVED
+  CLOSED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RentLineStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum CaseEventType {
+  MISSED_PAYMENT
+  PHONE_CALL
+  EMAIL_SENT
+  SIMPLE_LETTER_SENT
+  REGISTERED_LETTER_PREPARED
+  REPAYMENT_PLAN_PROPOSED
+  REPAYMENT_PLAN_ACCEPTED
+  GUARANTOR_CONTACTED
+  DOCUMENT_GENERATED
+  PROFESSIONAL_FILE_PREPARED
+  PAYMENT_RECEIVED
+  NOTE
+  CUSTOM
+}
+
+enum DocumentType {
+  AMICABLE_REMINDER_EMAIL
+  AMICABLE_REMINDER_LETTER
+  FORMAL_NOTICE_DRAFT
+  REPAYMENT_PLAN
+  GUARANTOR_INFORMATION_LETTER
+  CASE_SUMMARY
+  PROFESSIONAL_ESCALATION_FILE
+  RENT_RECEIPT
+}
+
+enum BillingPlan {
+  FREE
+  BAILLEUR
+  PREMIUM
+  GESTIONNAIRE
+  AGENCE
+}
+
+enum OrganizationType {
+  SCI
+  AGENCY
+  INVESTOR
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  ACCOUNTANT
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  NONE
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+enum NurtureEmailStatus {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum AddOnType {
+  REGISTERED_LETTER
+  ELECTRONIC_SIGNATURE
+  FISCAL_REPORT
+  PROFESSIONAL_FILE
+  REGISTERED_LETTER_PACK_10
+  LEGAL_CONSULTATION
+  LEGAL_ARCHIVE_10Y
+}
+
+enum AddOnOrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+enum TenantPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
+
+enum ExternalRequestStatus {
+  PENDING
+  SENT
+  SIGNED
+  DELIVERED
+  FAILED
+  CANCELED
+}
+
+enum PartnerProfessionalType {
+  COMMISSAIRE_JUSTICE
+  AVOCAT
+  RECOUVREMENT
+  EXPERT_COMPTABLE
+}
+
+enum ReferralStatus {
+  REQUESTED
+  CONTACTED
+  ACCEPTED
+  DECLINED
+  CLOSED
+}
+
+enum GliLeadStatus {
+  REQUESTED
+  SENT_TO_PARTNER
+  QUOTED
+  WON
+  LOST
+}
