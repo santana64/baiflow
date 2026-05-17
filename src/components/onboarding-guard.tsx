@@ -1,8 +1,7 @@
 ﻿"use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 
 export function OnboardingGuard({
@@ -13,13 +12,6 @@ export function OnboardingGuard({
   progress: number;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (completed) return;
-    if (pathname === "/app/onboarding" || pathname === "/app/account") return;
-    router.replace("/app/onboarding");
-  }, [completed, pathname, router]);
 
   if (completed || pathname === "/app/onboarding") return null;
 
