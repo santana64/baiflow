@@ -40,9 +40,11 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const posthogKeyRaw = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const posthogKey = posthogKeyRaw && posthogKeyRaw !== "placeholder" ? posthogKeyRaw : null;
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
-  const crispId = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
+  const crispIdRaw = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
+  const crispId = crispIdRaw && crispIdRaw !== "placeholder" ? crispIdRaw : null;
   return (
     <html lang="fr">
       <head>
