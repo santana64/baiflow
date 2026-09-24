@@ -14,7 +14,6 @@ import type { RentCaseLike, RentLineLike } from "./types";
 
 function makeLine(overrides: Partial<RentLineLike> & { dueDate: Date }): RentLineLike {
   return {
-    id: Math.random().toString(),
     periodLabel: "Janvier 2026",
     rentDueCents: 80000,
     chargesDueCents: 10000,
@@ -238,7 +237,7 @@ describe("getNextRecommendedAction", () => {
 
   it("recommends simple letter after first contact", () => {
     const rentCase = makeCase({
-      events: [{ type: "EMAIL_SENT" }],
+      events: [{ type: "EMAIL_SENT", title: "Email envoyé", eventDate: new Date() }],
       lines: [],
     });
     const action = getNextRecommendedAction(rentCase);
@@ -247,7 +246,10 @@ describe("getNextRecommendedAction", () => {
 
   it("recommends repayment plan after simple letter", () => {
     const rentCase = makeCase({
-      events: [{ type: "EMAIL_SENT" }, { type: "SIMPLE_LETTER_SENT" }],
+      events: [
+        { type: "EMAIL_SENT", title: "Email envoyé", eventDate: new Date() },
+        { type: "SIMPLE_LETTER_SENT", title: "Relance simple", eventDate: new Date() },
+      ],
       lines: [makeLine({ dueDate: new Date(), unpaidAmountCents: 90000 })],
     });
     const action = getNextRecommendedAction(rentCase);

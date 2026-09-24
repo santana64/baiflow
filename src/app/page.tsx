@@ -55,9 +55,9 @@ function LandingNav() {
           <a href="#faq" className="text-sm font-medium text-ink/60 hover:text-ink">
             FAQ
           </a>
-          <a href="/blog" className="text-sm font-medium text-ink/60 hover:text-ink">
+          <Link href="/blog" className="text-sm font-medium text-ink/60 hover:text-ink">
             Ressources
-          </a>
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           <Link
